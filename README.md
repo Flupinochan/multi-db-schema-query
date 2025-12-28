@@ -141,5 +141,5 @@ docker run --rm multi-db-schema-query-app
 ## GPG Key
 
 ```bash
-& "C:\Program Files\Git\usr\bin\gpg.exe" --full-generate-key
+git config --global user.signingkey "C:/Users/xxx/.ssh/id_ed25519.pub"
 ```
