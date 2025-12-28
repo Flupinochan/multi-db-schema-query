@@ -28,3 +28,8 @@ variable "db_password" {
   type    = string
   default = "password1!"
 }
+
+variable "db_name" {
+  type    = string
+  default = "mydb"
+}

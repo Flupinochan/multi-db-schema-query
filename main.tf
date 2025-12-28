@@ -29,23 +29,27 @@ resource "aws_security_group" "ssh" {
   name        = "allow-ssh"
   description = "Allow SSH inbound traffic"
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
     Name = "allow-ssh"
   }
+}
+
+resource "aws_security_group_rule" "ssh_ingress" {
+  type              = "ingress"
+  from_port         = 22
+  to_port           = 22
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.ssh.id
+}
+
+resource "aws_security_group_rule" "ssh_egress" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.ssh.id
 }
 
 # EC2
@@ -73,40 +77,44 @@ resource "aws_security_group" "rds" {
   name        = "allow-mysql-from-ec2"
   description = "Allow MySQL from EC2"
 
-  ingress {
-    from_port       = 3306
-    to_port         = 3306
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ssh.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
     Name = "allow-mysql-from-ec2"
   }
 }
 
+resource "aws_security_group_rule" "rds_ingress" {
+  type                     = "ingress"
+  from_port                = 3306
+  to_port                  = 3306
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.rds.id
+  source_security_group_id = aws_security_group.ssh.id
+}
+
+resource "aws_security_group_rule" "rds_egress" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.rds.id
+}
+
 # RDS
 resource "aws_db_instance" "default" {
   allocated_storage      = 10
-  db_name                = "mydb"
+  db_name                = var.db_name
   engine                 = "mysql"
-  engine_version         = "8.0"
   instance_class         = var.db_instance_class
   username               = var.db_username
   password               = var.db_password
-  parameter_group_name   = "default.mysql8.0"
   skip_final_snapshot    = true
+  deletion_protection    = false
   vpc_security_group_ids = [aws_security_group.rds.id]
   publicly_accessible    = false
 
   timeouts {
     create = "10m"
+    delete = "30m"
   }
 }
