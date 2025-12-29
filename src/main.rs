@@ -12,7 +12,7 @@ use tracing::{error, info};
 const SSH_HOST: &str = "13.223.99.141";
 const SSH_PORT: u16 = 22;
 const SSH_USER: &str = "ec2-user";
-const SSH_KEY_PATH: &str = "multi-db-schema-query.pem";
+const SSH_KEY_PATH: &str = "/home/metalmental/multi-db-schema-query.pem";
 const LOCAL_PORT: u16 = 3306;
 const RDS_HOST: &str = "terraform-20251229055855571100000001.cxfnvhaqo6xk.us-east-1.rds.amazonaws.com";
 const RDS_PORT: u16 = 3306;
@@ -56,12 +56,26 @@ async fn run() -> Result<()> {
     db::setup_test_schemas(&pool).await?;
 
     // スキーマ一覧を取得
-    let schemas = ["schema_a", "schema_b", "schema_c"];
+    let schemas_path = std::path::Path::new("config/schemas.txt");
+    let schemas_content = std::fs::read_to_string(schemas_path)
+        .context("config/schemas.txtの読み込みに失敗しました")?;
+    let schemas: Vec<String> = schemas_content
+        .lines()
+        .map(|line| line.trim())
+        .filter(|line| !line.is_empty())
+        .map(String::from)
+        .collect();
+
+    // クエリファイルを読み込む
     let sql_path = std::path::Path::new("sql/query.sql");
     let sql = std::fs::read_to_string(sql_path)
         .context("クエリファイルの読み込みに失敗しました")?;
 
-    let results = db::query_schemas(&pool, &schemas, &sql, 10).await?;
+    // 各スキーマに対してクエリを実行
+    let schema_refs: Vec<&str> = schemas.iter().map(|s| s.as_str()).collect();
+    let results = db::query_schemas(&pool, &schema_refs, &sql, 10).await?;
+
+    // 結果をログ出力とCSV出力
     db::print_rows(&results);
     db::write_csv(&results, std::path::Path::new("./output/results.csv"))?;
 
