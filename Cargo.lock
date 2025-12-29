@@ -933,6 +933,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "csv",
+ "dotenvy",
  "futures",
  "rust_decimal",
  "serde_json",
