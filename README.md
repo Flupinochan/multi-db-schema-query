@@ -1,162 +1,61 @@
-## Rust バージョン管理
-
-```bash
-# https://releases.rs/
-rustup install stable
-rustup install nightly
-
-# 特定バージョン
-rustup install 1.75.0
-
-# グローバルのデフォルト変更
-rustup default stable
-
-# 現在のディレクトリのみ指定(rust-toolchain.tomlで管理)
-rustup override set stable
-
-# インストール済みを確認
-rustup show
-
-# インストール可能なバージョンをlistすることはできない
-
-# Rust コンパイラのバージョン
-rustc --version
-```
-
-## Cargo ビルド/実行
-
-```bash
-# プロジェクト初期化
-cargo init .
-
-# ビルド + 実行
-cargo run -q
-cargo run --release
-
-# テスト実行
-cargo test
-
-# ドキュメント生成
-cargo doc --open
-
-# Cargo.toml に依存関係を追加
-cargo add serde
-
-# 依存関係の更新
-cargo update
-
-# 不要なビルド成果物を削除
-cargo clean
-
-# リンター
-cargo clippy
-# フォーマッター
-cargo fmt
-# 構文チェック
-cargo check
-```
-
-[Library List](https://lib.rs/)
-[Rustfmt](https://rust-lang.github.io/rustfmt/?version=v1.8.0&search=)
-
-## localstack aws
-
-- [desktop](https://apps.microsoft.com/detail/9ntrnft9zws2?hl=ja-JP&gl=JP)
-- [docker extention](https://docs.localstack.cloud/aws/tooling/localstack-docker-extension/)
-- [vscode extention](https://marketplace.visualstudio.com/items?itemName=localstack.localstack)
-
-```bash
-localstack start -d
-
-localstack stop
-
-localstack auth set-token xxxxx
-```
-
-### tflocal (terraform)
-
-LocalStack用のTerraformラッパー
-
-```bash
-# format
-tflocal fmt
-# download provider
-tflocal init
-# validate
-tflocal validate
-
-# 変更内容を確認
-tflocal plan
-# deploy
-tflocal apply
-tflocal apply -auto-approve
-
-# show status
-tflocal show
-tflocal state list
-tflocal output
-
-# 同期
-tflocal refresh
-
-# destroy
-tflocal plan -destroy
-tflocal destory
-tflocal destory -auto-approve
-
-# 依存関係の可視化
-tflocal graph
-```
-
-### awslocal
-
-[awslocal](https://github.com/localstack/awscli-local)
-
-### 接続
-
-```bash
-# EC2
-ssh -i .\multi-db-schema-query.pem ec2-user@13.220.45.45
-
-# RDS
-mysql -h terraform-20251226203317686000000002.cxfnvhaqo6xk.us-east-1.rds.amazonaws.com -u admin -ppassword1!
-```
-
-## Library
-
-sqlxはcliもインストール
-
-```bash
-# sql
-cargo install sqlx-cli
-```
-
-## Docker
-
-```bash
-docker build -t multi-db-schema-query-app .
-docker build --no-cache -t multi-db-schema-query-app .
-
-docker run --rm multi-db-schema-query-app
-
-mkdir -p output
-docker run --rm \
-  -v $(pwd)/output:/app/output \
-  -v $(pwd)/multi-db-schema-query.pem:/app/multi-db-schema-query.pem \
-  multi-db-schema-query-app
-```
-
-## Signing Key
-
-```bash
-git config --global user.signingkey "C:/Users/xxx/.ssh/id_ed25519.pub"
-```
-
-
 ## ビルド、実行手順
 
+### 以下の `.env` ファイルを作成
+
+#### terraformの場合
+
+```ini
+# 踏み台サーバ、SSH設定
+SSH_HOST=13.223.99.141
+SSH_PORT=22
+SSH_USER=ec2-user
+SSH_KEY_PATH=multi-db-schema-query.pem
+LOCAL_PORT=3306
+
+# RDS設定
+RDS_HOST=terraform-20251229055855571100000001.cxfnvhaqo6xk.us-east-1.rds.amazonaws.com
+RDS_PORT=3306
+DATABASE_URL=mysql://admin:password1!@localhost:3306/mydb
+
+# ファイルパス
+SCHEMAS_PATH=resources/schemas.txt
+SQL_PATH=resources/query.sql
+OUTPUT_PATH=./output/results.csv
+
+# クエリ設定
+SQL_CONCURRENCY=10
+```
+
+#### docker composeの場合
+
+```ini
+# 踏み台サーバ、SSH設定
+SSH_HOST=localhost
+SSH_PORT=2222
+SSH_USER=ec2-user
+SSH_KEY_PATH=multi-db-schema-query.pem
+LOCAL_PORT=13306
+
+# RDS設定
+RDS_HOST=mysql
+RDS_PORT=3306
+DATABASE_URL=mysql://root:password1!@localhost:13306/mydb
+
+# ファイルパス
+SCHEMAS_PATH=resources/schemas.txt
+SQL_PATH=resources/query.sql
+OUTPUT_PATH=./output/results.csv
+
+# クエリ設定
+SQL_CONCURRENCY=10
+
+# 公開鍵の内容を記載 openssh-serverコンテナにコピーされる
+PUBLIC_KEY=ssh-rsa ABCDE...
+```
+
+### ビルド&実行
+
 ```bash
-vi .env
 cargo build --release
 ./target/release/multi-db-schema-query
 ```

@@ -1,4 +1,4 @@
-multi-db-schema-query.pem
+multi-db-schema-query*
 terraform.tfstate*
 .terraform*
 /output
