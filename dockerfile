@@ -20,6 +20,7 @@ RUN apt-get update && \
 
 COPY --from=builder /app/target/release/multi-db-schema-query ./
 COPY multi-db-schema-query.pem ./
+COPY ./sql/query.sql ./sql/query.sql
 
 RUN chmod 400 multi-db-schema-query.pem
 

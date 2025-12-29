@@ -134,9 +134,17 @@ cargo install sqlx-cli
 ## Docker
 
 ```bash
+DOCKER_BUILDKIT=0
 docker build -t multi-db-schema-query-app .
 docker build --no-cache -t multi-db-schema-query-app .
+
 docker run --rm multi-db-schema-query-app
+
+mkdir -p output
+docker run --rm \
+  -v $(pwd)/output:/app/output \
+  -v $(pwd)/multi-db-schema-query.pem:/app/multi-db-schema-query.pem \
+  multi-db-schema-query-app
 ```
 
 ## Signing Key

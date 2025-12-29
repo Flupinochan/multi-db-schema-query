@@ -112,6 +112,7 @@ resource "aws_db_instance" "default" {
   deletion_protection    = false
   vpc_security_group_ids = [aws_security_group.rds.id]
   publicly_accessible    = false
+  database_insights_mode = "standard"
 
   timeouts {
     create = "10m"
