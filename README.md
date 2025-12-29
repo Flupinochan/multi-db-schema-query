@@ -151,3 +151,12 @@ docker run --rm \
 ```bash
 git config --global user.signingkey "C:/Users/xxx/.ssh/id_ed25519.pub"
 ```
+
+
+## ビルド、実行手順
+
+```bash
+vi .env
+cargo build --release
+./target/release/multi-db-schema-query
+```
