@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, NaiveDate, NaiveDateTime, NaiveTime, Utc};
 use futures::stream::{self, StreamExt};
+use sqlx::Executor;
 use sqlx::TypeInfo as _;
 use sqlx::ValueRef as _;
 use sqlx::mysql::{MySqlPool, MySqlRow};
@@ -19,11 +20,15 @@ pub async fn query_schemas(
     let results: Vec<_> = stream::iter(schemas)
         .map(|schema| {
             let pool = pool.clone();
-            let query = sql.replace("FROM ", &format!("FROM {}.", schema));
+            let sql = sql.to_string();
             let schema = schema.to_string();
             async move {
+                // スキーマ切り替え
+                pool.execute(format!("USE `{}`", schema).as_str()).await?;
+
+                // クエリ実行
                 let rows: Vec<MySqlRow> =
-                    sqlx::query(&query).fetch_all(&pool).await?;
+                    sqlx::query(&sql).fetch_all(&pool).await?;
                 Ok::<_, sqlx::Error>((schema, rows))
             }
         })
