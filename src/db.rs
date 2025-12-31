@@ -10,25 +10,31 @@ use std::fs;
 use std::path::Path;
 use tracing::info;
 
-/// スキーマを横断してクエリを並行実行
+/// スキーマの一覧に並列してクエリ実行
 pub async fn query_schemas(
     pool: &MySqlPool,
     schemas: &[&str],
     sql: &str,
     concurrency: usize,
 ) -> Result<Vec<(String, Vec<MySqlRow>)>> {
+    // streamにして並列実行
     let results: Vec<_> = stream::iter(schemas)
         .map(|schema| {
             let pool = pool.clone();
             let sql = sql.to_string();
             let schema = schema.to_string();
             async move {
+                // コネクション取得
+                let mut conn = pool.acquire().await?;
+
                 // スキーマ切り替え
-                pool.execute(format!("USE `{}`", schema).as_str()).await?;
+                conn.execute(format!("USE `{}`", schema).as_str()).await?;
 
                 // クエリ実行
                 let rows: Vec<MySqlRow> =
-                    sqlx::query(&sql).fetch_all(&pool).await?;
+                    sqlx::query(&sql).fetch_all(&mut *conn).await?;
+
+                // (スキーマ名, 行データのvec) で返却
                 Ok::<_, sqlx::Error>((schema, rows))
             }
         })
@@ -36,6 +42,7 @@ pub async fn query_schemas(
         .collect()
         .await;
 
+    // エラー結果の統合処理
     results
         .into_iter()
         .collect::<Result<Vec<_>, _>>()
@@ -160,6 +167,7 @@ pub fn write_csv(
     results: &[(String, Vec<MySqlRow>)],
     output: &Path,
 ) -> Result<()> {
+    // 出力先ディレクトリ作成
     if let Some(parent) = output.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -169,6 +177,7 @@ pub fn write_csv(
 
     for (schema, rows) in results {
         for row in rows {
+            // 初回のみヘッダー出力
             if !header_done {
                 let mut cols = vec!["schema".to_string()];
                 cols.extend(row.columns().iter().map(|c| c.name().to_string()));
@@ -176,8 +185,10 @@ pub fn write_csv(
                 header_done = true;
             }
 
+            // 1カラム目をスキーマ名 + 各カラム値に整形
             let mut vals = vec![schema.clone()];
             vals.extend(row_to_values(row));
+
             wtr.write_record(&vals)?;
         }
     }
@@ -201,6 +212,15 @@ pub fn print_rows(results: &[(String, Vec<MySqlRow>)]) {
             info!("[{}] {}", schema, cols.join(", "));
         }
     }
+}
+
+/// DBから現在時刻を取得 (DB接続テスト用)
+pub async fn get_current_timestamp(pool: &MySqlPool) -> Result<NaiveDateTime> {
+    let now: NaiveDateTime =
+        sqlx::query_scalar("SELECT NOW()").fetch_one(pool).await?;
+    info!("現在時刻: {}", now);
+
+    Ok(now)
 }
 
 /// テスト用のスキーマとテーブルを作成（全型の動作確認用）

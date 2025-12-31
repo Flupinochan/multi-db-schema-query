@@ -9,10 +9,11 @@ struct JstTime;
 impl FormatTime for JstTime {
     fn format_time(&self, w: &mut Writer<'_>) -> std::fmt::Result {
         let now = Utc::now().with_timezone(&Tokyo);
-        write!(w, "{}", now.format("%Y-%m-%d %H:%M:%S%.3f"))
+        write!(w, "{} JST", now.format("%Y-%m-%d %H:%M:%S%.3f"))
     }
 }
 
+/// ロガー初期化
 pub fn init() {
     fmt()
         .with_env_filter(

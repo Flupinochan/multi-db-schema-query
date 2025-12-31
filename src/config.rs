@@ -1,16 +1,17 @@
 use anyhow::{Context, Result};
 use std::env;
 
+/// .env設定ファイルを格納
 #[derive(Debug, Clone)]
 pub struct Config {
-    // SSH設定
+    // 踏み台サーバ、SSH設定
     pub ssh_host: String,
     pub ssh_port: u16,
     pub ssh_user: String,
     pub ssh_key_path: String,
+    pub local_port: u16,
 
     // RDS設定
-    pub local_port: u16,
     pub rds_host: String,
     pub rds_port: u16,
     pub database_url: String,
@@ -39,11 +40,11 @@ impl Config {
                 .context("SSH_USERが設定されていません")?,
             ssh_key_path: env::var("SSH_KEY_PATH")
                 .context("SSH_KEY_PATHが設定されていません")?,
-
             local_port: env::var("LOCAL_PORT")
                 .context("LOCAL_PORTが設定されていません")?
                 .parse()
                 .context("LOCAL_PORTの値が不正です")?,
+
             rds_host: env::var("RDS_HOST")
                 .context("RDS_HOSTが設定されていません")?,
             rds_port: env::var("RDS_PORT")

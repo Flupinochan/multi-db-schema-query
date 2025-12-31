@@ -52,13 +52,12 @@ impl SshClient {
                 &format!("{}@{}", self.username, self.host),
                 command,
             ])
-            .output()
-            .context("コマンドの実行に失敗しました")?;
+            .output()?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             anyhow::bail!(
-                "コマンドの実行に失敗しました (終了コード: {:?}): {}",
+                "コマンド終了コード: {:?}: {}",
                 output.status.code().unwrap(),
                 stderr.trim()
             );
@@ -67,14 +66,14 @@ impl SshClient {
         Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
     }
 
-    /// SSHトンネルを開始(バックグラウンドで動作)
+    /// SSHトンネルを開始 (バックグラウンドで動作)
     pub fn start_tunnel(
         &mut self,
         local_port: u16,
         remote_host: &str,
         remote_port: u16,
     ) -> Result<()> {
-        // 既存のトンネルがあれば終了
+        // 既存のトンネルがある場合
         if self.tunnel.is_some() {
             // Dropを呼び出して終了
             self.tunnel = None;
@@ -96,10 +95,9 @@ impl SshClient {
                 "-o",
                 "ServerAliveInterval=60",
             ])
-            .spawn()
-            .context("SSHトンネルの起動に失敗しました")?;
+            .spawn()?;
 
-        // トンネルが確立されるまで待機
+        // トンネルが確立されるまで数秒待機
         thread::sleep(Duration::from_secs(2));
 
         info!(
@@ -112,7 +110,7 @@ impl SshClient {
         Ok(())
     }
 
-    /// SSHトンネルを終了
+    /// SSHトンネルのクリーンアップ
     pub fn stop_tunnel(&mut self) {
         self.tunnel = None;
     }
