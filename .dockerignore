@@ -1,0 +1,9 @@
+*terraform*
+*.tf
+output/
+target/
+.env
+.gitignore
+docker-compose.yml
+multi-db-schema-query.pem.pub
+README.md
